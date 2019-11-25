@@ -9,13 +9,20 @@ class Plotting(object):
 		pass
 
 	def plot_full_simulation(self):
-		rates_data = pd.DataFrame.from_csv('full_sim_rates_data.csv')
+		'''
+		Plots the neuron rates and currents for the full 4s simulation
+		:return: None
+		'''
+
+		rates_data = pd.DataFrame.from_csv('neuron_rates_4000.csv')
 		currents_data = None
-		weights_data = None
+		print(np.arange(0, len(rates_data.columns) + len(rates_data.columns) / 4, len(rates_data.columns) / 4))
 
 		plt.pcolor(rates_data)
-		plt.yticks(np.arange(1, len(rates_data.index), 1), rates_data.index)
-		plt.xticks(np.arange(1, len(rates_data.columns), 1), rates_data.columns)
+		plt.yticks([0, 100, 200, 300, 400, 500], [0, 100, 200, 300, 400, 500])
+		plt.xticks(np.arange(0, len(rates_data.columns) + len(rates_data.columns) / 4, len(rates_data.columns) / 4), [0, 1, 2, 3, 4])
+		plt.ylabel('Neuron #')
+		plt.xlabel('Time (s)')
 		plt.show()
 
 

@@ -15,6 +15,7 @@ import sys
 import numpy as np
 import pandas as pd
 
+
 class LinearRecurrentNetwork(object):
     def __init__(self, no_cells=500, time_step=0.5, w_max=27, d=5):
         '''
@@ -201,11 +202,12 @@ class LinearRecurrentNetwork(object):
             print(int(step / no_steps * 100), "%", end="\r")
 
         rates_data = pd.DataFrame.from_dict(network_firing_rates)
-        rates_data.to_csv('full_sim_rates_data.csv')
+        file_name = 'neuron_rates_' + str(time_sim) + '.csv'
+        rates_data.to_csv(file_name)
 
 
 if __name__ == "__main__":
     network_point5 = LinearRecurrentNetwork()
     network_5 = LinearRecurrentNetwork(time_step=5.0)
-    time_sim = 100 # ms
+    time_sim = 4000 # ms
     network_5.begin_simulation(time_sim)
