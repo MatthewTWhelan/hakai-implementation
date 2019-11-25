@@ -13,11 +13,10 @@ This script contains the first rate-coded algorithm of Figure 1.
 
 import sys
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
+import pandas as pd
 
 class LinearRecurrentNetwork(object):
-    def __init__(self, no_cells=500, time_step=2.0, w_max=27, d=5):
+    def __init__(self, no_cells=500, time_step=0.5, w_max=27, d=5):
         '''
 
         :param no_cells: integer, specifies number of cells in the linear network
@@ -57,8 +56,8 @@ class LinearRecurrentNetwork(object):
         self.STP_D = np.ones(self.no_cells)
         self.STP_D_next = np.ones(self.no_cells)
 
-        self.STP_F = np.ones(self.no_cells) * U
-        self.STP_F_next = np.ones(self.no_cells) * U
+        self.STP_F = np.ones(self.no_cells) * self.U
+        self.STP_F_next = np.ones(self.no_cells) * self.U
 
     def initialise_weights(self, w_max, d):
         '''
@@ -77,10 +76,10 @@ class LinearRecurrentNetwork(object):
                     weights[i][j] = w_max * np.exp(-np.abs(i - j) / d)
         return weights
 
-    def update_cell_firing_rates(self, I_ext, rho=0.0025, epsilon=0.5):
+    def update_cell_firing_rates(self, rho=0.0025, epsilon=0.5):
         '''
 
-        :param I_ext: float, the external current input
+        :param I_ext: numpy array, the external current input
         :param rho: float, constant used for the linear rectifier unit
         :param epsilon: float, threshold in linear rectifier unit
         :return: None
@@ -105,7 +104,8 @@ class LinearRecurrentNetwork(object):
         '''
 
         for f in range(self.no_cells):
-            self.STP_F_next[f] = ((U - STP_F[f]) / tau_f + U * (1 - STP_F[f]) * rates[f]) * self.time_step + STP_F[f]
+            self.STP_F_next[f] = ((self.U - STP_F[f]) / tau_f + self.U * (1 - STP_F[f]) * rates[f]) * self.time_step + \
+                                 STP_F[f]
             self.STP_D_next[f] = ((1.0 - STP_D[f]) / tau_d - rates[f] * STP_D[f] * STP_F[f]) * self.time_step + STP_D[f]
 
     def update_currents(self, I_exc, I_inh, rates, weights, STP_F, STP_D, tau_exc = 10.0, tau_inh = 10.0):
@@ -165,6 +165,47 @@ class LinearRecurrentNetwork(object):
                     continue
                 self.weights_next[i][j] = delta_w[i][j] * self.time_step + weights[i][j]
 
+    def begin_simulation(self, time_sim):
+        network_firing_rates = {}
+        no_steps = int(time_sim / self.time_step)
+        for step in range(no_steps):
+            if step != 0:
+                self.weights = self.weights_next.copy()
+                self.delta_w = self.delta_w_next.copy()
+                self.rates = self.rates_next.copy()
+                self.I_exc = self.I_exc_next.copy()
+                self.I_inh = self.I_inh_next.copy()
+                self.STP_D = self.STP_D_next.copy()
+                self.STP_F = self.STP_F_next.copy()
+
+            self.I_ext = np.zeros(self.no_cells)
+
+            # excite the first 10 cells for the first 10ms
+            if step * self.time_step < 10:
+                for i in range(10):
+                    self.I_ext[i] = 5
+
+            # excite the middle 10 cells at 3s
+            if 3000 < step * self.time_step < 3010:
+                for i in range(10):
+                    self.I_ext[i + 244] = 5
+
+            self.update_cell_firing_rates()
+            self.update_currents(self.I_exc, self.I_inh, self.rates, self.weights, self.STP_D, self.STP_F)
+            self.update_STP(self.rates, self.STP_F, self.STP_D)
+            self.update_delta_w(self.delta_w, self.rates, self.STP_D, self.STP_F)
+            self.update_weights(self.delta_w, self.weights)
+
+            network_firing_rates[step * self.time_step] = self.rates
+
+            print(int(step / no_steps * 100), "%", end="\r")
+
+        rates_data = pd.DataFrame.from_dict(network_firing_rates)
+        rates_data.to_csv('full_sim_rates_data.csv')
+
 
 if __name__ == "__main__":
-    network = LinearRecurrentNetwork()
+    network_point5 = LinearRecurrentNetwork()
+    network_5 = LinearRecurrentNetwork(time_step=5.0)
+    time_sim = 100 # ms
+    network_5.begin_simulation(time_sim)

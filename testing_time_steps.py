@@ -1,9 +1,10 @@
-'''
-Note that the smallest time constant we have in the equations is 10ms, for the current equations.
-Look what happens if the time step is only set to half of that (5ms) below. For a normal first order
-differential equation, the discrete time solution is wildly incorrect. Only for a time step that is around
-20 times smaller than the time constant is the solution more acceptable.
-'''
+#!/usr/bin/env python3
+
+# Note that the smallest time constant we have in the equations is 10ms, for the current equations.
+# Look what happens if the time step is only set to half of that (5ms) below. For a normal first order
+# differential equation, the discrete time solution is wildly incorrect. Only for a time step that is around
+# 20 times smaller than the time constant is the solution more acceptable.
+
 
 import numpy as np
 import matplotlib.pyplot as plt
