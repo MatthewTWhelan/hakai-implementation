@@ -17,16 +17,15 @@ import pandas as pd
 
 
 class LinearRecurrentNetwork(object):
-    def __init__(self, no_cells=500, time_step=0.5, w_max=27, d=5):
+    def __init__(self, weight_array=None, time_step=0.5, no_cells=500, w_max=27, d=5):
         '''
 
-        :param no_cells: integer, specifies number of cells in the linear network
+        :param weight_array: square numpy array, the weight matrix for the network
         :param time_step: float, the step size used for simulation in milliseconds
         :param w_max: float, sets the max value for weight initialisation
         :param d: float, sets the standard deviation for the weights
         '''
 
-        self.no_cells = no_cells
         self.time_step = time_step
         self.w_max = w_max
         self.d = d
@@ -36,9 +35,14 @@ class LinearRecurrentNetwork(object):
         self.w_inh = 1.0
 
         # Initial conditions
-        self.weights = self.initialise_weights(self.w_max, self.d)
-        self.weights_initial = self.weights
-        self.weights_next = np.zeros((self.no_cells, self.no_cells))
+        if weight_array is None:
+            self.no_cells = no_cells
+            self.weights = self.initialise_weights(self.no_cells, self.w_max, self.d)
+            self.weights_next = np.zeros((self.no_cells, self.no_cells))
+        else:
+            self.no_cells = weight_array.shape[0]
+            self.weights = weight_array.copy()
+            self.weights_next = np.zeros((self.no_cells, self.no_cells))
 
         self.delta_w = np.zeros((self.no_cells, self.no_cells))
         self.delta_w_next = np.zeros((self.no_cells, self.no_cells))
@@ -60,22 +64,23 @@ class LinearRecurrentNetwork(object):
         self.STP_F = np.ones(self.no_cells) * self.U
         self.STP_F_next = np.ones(self.no_cells) * self.U
 
-    def initialise_weights(self, w_max, d):
+    def initialise_weights(self, no_cells, w_max, d):
         '''
 
-        :param w_max: float, the max value for of weight
+        :param no_cells: int, the number of cells in the network
+        :param w_max: float, the max value for the weight
         :param d: float, the standard deviation used for setting the weights
-        :return: numpy array of the weight matrix, where weights[i][j] specifies the weight between neurons i and j
+        :return: numpy array of the weight matrix, where weights[i][j] specifies the weight from neuron i to neuron j
         '''
 
-        weights = np.zeros((self.no_cells, self.no_cells))
-        for j in range(self.no_cells):
-            for i in range(self.no_cells):
+        weight_matrix = np.zeros((no_cells, no_cells))
+        for j in range(no_cells):
+            for i in range(no_cells):
                 if i == j:
-                    weights[i][j] = 0.0
+                    weight_matrix[i][j] = 0.0
                 else:
-                    weights[i][j] = w_max * np.exp(-np.abs(i - j) / d)
-        return weights
+                    weight_matrix[i][j] = w_max * np.exp(-np.abs(i - j) / d)
+        return weight_matrix
 
     def update_cell_firing_rates(self, rho=0.0025, epsilon=0.5):
         '''
@@ -166,7 +171,15 @@ class LinearRecurrentNetwork(object):
                     continue
                 self.weights_next[i][j] = delta_w[i][j] * self.time_step + weights[i][j]
 
-    def begin_simulation(self, time_sim):
+    def begin_simulation(self, time_sim, ext_input=None):
+        '''
+
+        :param time_sim: float, the amount of time, in ms, the simulation should run for
+        :param ext_input: function, the external input to the network as a function of time
+        :returns: Pandas data frame of the network's rates (index is the neuron ID, column is the time),
+        Pandas data frame of the weight matrix at the end of the simulation (both index and column represents neuron ID)
+        '''
+
         network_firing_rates = {}
         no_steps = int(time_sim / self.time_step)
         for step in range(no_steps):
@@ -179,18 +192,12 @@ class LinearRecurrentNetwork(object):
                 self.STP_D = self.STP_D_next.copy()
                 self.STP_F = self.STP_F_next.copy()
 
+            # call the external input function
             self.I_ext = np.zeros(self.no_cells)
+            if ext_input is not None:
+                ext_input(step)
 
-            # excite the first 10 cells for the first 10ms
-            if step * self.time_step < 10:
-                for i in range(10):
-                    self.I_ext[i] = 5
-
-            # excite the middle 10 cells at 3s
-            if 3000 < step * self.time_step < 3010:
-                for i in range(10):
-                    self.I_ext[i + 244] = 5
-
+            # update all the network variables
             self.update_cell_firing_rates()
             self.update_currents(self.I_exc, self.I_inh, self.rates, self.weights, self.STP_D, self.STP_F)
             self.update_STP(self.rates, self.STP_F, self.STP_D)
@@ -201,13 +208,30 @@ class LinearRecurrentNetwork(object):
 
             print(int(step / no_steps * 100), "%", end="\r")
 
-        rates_data = pd.DataFrame.from_dict(network_firing_rates)
-        file_name = 'neuron_rates_' + str(time_sim) + '.csv'
-        rates_data.to_csv(file_name)
+        # Creating the Pandas data frames for the rates and weights
+        rates_df = pd.DataFrame.from_dict(network_firing_rates)
+        weights_df = pd.DataFrame(self.weights, np.arange(self.no_cells), np.arange(self.no_cells))
+
+        return rates_df, weights_df
+
+    def ext_input_full(self, step):
+        # excite the first 10 cells for the first 10ms
+        if step * self.time_step < 10:
+            for i in range(10):
+                self.I_ext[i] = 5
+
+        # excite the middle 10 cells at 3s
+        if 3000 < step * self.time_step < 3010:
+            for i in range(10):
+                self.I_ext[i + 244] = 5
 
 
 if __name__ == "__main__":
-    network_point5 = LinearRecurrentNetwork()
+    network_point5 = LinearRecurrentNetwork(time_step=0.5)
     network_5 = LinearRecurrentNetwork(time_step=5.0)
+
     time_sim = 4000 # ms
-    network_5.begin_simulation(time_sim)
+
+    rates, weights = network_point5.begin_simulation(time_sim, network_point5.ext_input_full)
+    rates.to_csv('neuron_rates_' + str(time_sim) + '.csv')
+    weights.to_csv('neuron_weights_' + str(time_sim) + '.csv')
