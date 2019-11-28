@@ -148,21 +148,27 @@ class Plotting(object):
 		:return: None
 		'''
 
-		rates_data = pd.DataFrame.from_csv(self.data_dir + 'neuron_rates_100.csv')
-		flipped_data = rates_data.iloc[::-1]
+		rates_data = pd.DataFrame.from_csv('data/additional_eight_sec_neuron_rates.csv')
+		flipped_data = rates_data.reindex(index=rates_data.index[::-1])  # flipping the neuron indices to match the
+		# plotting style of Haga and Fukai
 
-		plt.pcolor(flipped_data, cmap='bwr')
-		plt.yticks([0, 100, 200, 300, 400, 500], [0, 100, 200, 300, 400, 500])
-		plt.ylabel('Neuron #')
-		plt.xlabel('Time (s)')
-		plt.colorbar()
+		plt.pcolor(flipped_data, norm=colors.LogNorm(vmin=1, vmax=flipped_data.values.max()),
+				   cmap='hot_r')
+		plt.yticks([0, 100, 200, 300, 400, 500], [500, 400, 300, 200, 100, 0])
+		plt.xticks(np.arange(0, len(rates_data.columns) + len(rates_data.columns) / 8, len(rates_data.columns) / 8),
+				   [4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8])
+		plt.ylabel('Neuron #', fontsize=10)
+		plt.xlabel('Time (s)', fontsize=10)
+		cbar = plt.colorbar()
+		cbar.ax.set_title('Rate (Hz)', fontsize=10)
+		plt.savefig(self.fig_dir + 'additional_eight_sec_simulation_rates')
 		plt.show()
 
 if __name__ == "__main__":
 	plots = Plotting()
+	plots.plot_custom_simulation()
 	# plots.plot_rates_full_simulation()
-	# plots.plot_custom_simulation()
-	plots.plot_middle_weight_3s_simulation()
+	# plots.plot_middle_weight_3s_simulation()
 	# plots.plot_middle_weight_4s_simulation()
 	# plots.plot_rates_additional_one_sec_simulation()
 	# plots.plot_rates_additional_four_sec_simulation()
