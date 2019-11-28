@@ -37,7 +37,7 @@ class Plotting(object):
 		:return: None
 		'''
 
-		weights_data = pd.DataFrame.from_csv(self.data_dir + 'neuron_weights_3000.csv')
+		weights_data = pd.DataFrame.from_csv(self.data_dir + 'standard_sim_neuron_weights_3000.csv')
 		weight_array = weights_data.values
 		weight_initial_data = pd.DataFrame.from_csv(self.data_dir + 'weights_initial.csv')
 		weight_initial = weight_initial_data.values
@@ -49,6 +49,27 @@ class Plotting(object):
 		plt.xlabel('Neuron #')
 		plt.ylabel('Change')
 
+		plt.show()
+
+	def plot_rates_additional_one_sec_simulation(self):
+		'''
+		Plots the neuron rates for the additional one second in an attempt for a forward replay
+		:return: None
+		'''
+
+		rates_data = pd.DataFrame.from_csv(self.data_dir + 'additional_one_sec_neuron_rates_1000.csv')
+		flipped_data = rates_data.reindex(index=rates_data.index[::-1]) # flipping the neuron indices to match the
+		# plotting style of Haga and Fukai
+
+		plt.pcolor(flipped_data, cmap='hot_r')
+		plt.yticks([0, 100, 200, 300, 400, 500], [500, 400, 300, 200, 100, 0])
+		#plt.xticks(np.arange(0, len(rates_data.columns) + len(rates_data.columns) / 8, len(rates_data.columns) / 8),
+		#		   [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4])
+		plt.ylabel('Neuron #', fontsize=10)
+		plt.xlabel('Time (s)', fontsize=10)
+		cbar = plt.colorbar()
+		cbar.ax.set_title('Rate (Hz)', fontsize=10)
+		plt.savefig(self.fig_dir + 'full_simulation_rates')
 		plt.show()
 
 	def plot_custom_simulation(self):
@@ -90,7 +111,8 @@ class Plotting(object):
 
 if __name__ == "__main__":
 	plots = Plotting()
-	plots.plot_rates_full_simulation()
+	#plots.plot_rates_full_simulation()
 	#plots.plot_custom_simulation()
-	#plots.plot_middle_weight_3s_simulation()
+	plots.plot_middle_weight_3s_simulation()
 	#plots.plot_middle_weight_4s_simulation()
+	#plots.plot_rates_additional_one_sec_simulation()

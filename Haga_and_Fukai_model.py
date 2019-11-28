@@ -263,6 +263,6 @@ if __name__ == "__main__":
         network_additional_one_sec = LinearRecurrentNetwork(weight_array=weights_initial)
         time_sim = 1000
         rates, weights = network_additional_one_sec.begin_simulation(time_sim, network_additional_one_sec.ext_input_start)
-        rates.to_csv(data_dir + 'additional_one_sec_neuron_rates_' + str(time_sim) + '.csv')
-        weights.to_csv(data_dir + 'additional_one_sec_neuron_weights_' + str(time_sim) + '.csv')
+        rates.to_csv(data_dir + 'additional_one_sec_neuron_rates.csv')
+        weights.to_csv(data_dir + 'additional_one_sec_neuron_weights.csv')
 
