@@ -8,7 +8,8 @@ Created on Thu Jan 10 19:42:05 2019
 The following is an attempt to replicate the results of Tatsuya Haga and Tomoki Fukai in their paper on reverse replay,
 titled "Recurrent network model for learning goal-directed sequences through reverse replay".
 
-This script contains the first rate-coded algorithm of Figure 1.
+This script contains two classes -- the first is the rate-coded linear network of Figure 1; the second is the rate
+coded two dimensional network used for spatial navigation, Figures 7-10.
 """
 
 import sys
@@ -237,7 +238,7 @@ if __name__ == "__main__":
     # Path to store data files
     data_dir = 'data/'
 
-    sim_id = 3
+    sim_id = 5
     if sim_id == 1:
         # Running the standard 4s simulation
         print('Running the standard 4s simulation')
@@ -252,7 +253,8 @@ if __name__ == "__main__":
         print('Running the first 3s of the standard simulation')
         network_standard_three_sec = LinearRecurrentNetwork(time_step=0.5)
         time_sim = 3000  # ms
-        rates, weights = network_standard_three_sec.begin_simulation(time_sim, network_standard_three_sec.ext_input_start)
+        rates, weights = network_standard_three_sec.begin_simulation(time_sim,
+                                                                     network_standard_three_sec.ext_input_start)
         rates.to_csv(data_dir + 'standard_sim_neuron_rates_' + str(time_sim) + '.csv')
         weights.to_csv(data_dir + 'standard_sim_neuron_weights_' + str(time_sim) + '.csv')
 
@@ -260,9 +262,31 @@ if __name__ == "__main__":
         # Running an additional 1s of simulation following the standard 4s simulation
         print('Running an additional 1s of simulation following the standard 4s simulation')
         weights_initial = pd.DataFrame.from_csv(data_dir + 'standard_sim_neuron_weights_4000.csv').values
-        network_additional_one_sec = LinearRecurrentNetwork(weight_array=weights_initial)
+        network_additional_one_sec = LinearRecurrentNetwork(weight_array=weights_initial, time_step=0.5)
         time_sim = 1000
-        rates, weights = network_additional_one_sec.begin_simulation(time_sim, network_additional_one_sec.ext_input_start)
+        rates, weights = network_additional_one_sec.begin_simulation(time_sim,
+                                                                     network_additional_one_sec.ext_input_start)
         rates.to_csv(data_dir + 'additional_one_sec_neuron_rates.csv')
         weights.to_csv(data_dir + 'additional_one_sec_neuron_weights.csv')
 
+    elif sim_id == 4:
+        # Running an additional 4s of the standard simulation following the standard 4s simulation
+        print('Running an additional 4s of standard simulation following the standard 4s simulation')
+        weights_initial = pd.DataFrame.from_csv(data_dir + 'standard_sim_neuron_weights_4000.csv').values
+        network_additional_four_sec = LinearRecurrentNetwork(weight_array=weights_initial, time_step=0.5)
+        time_sim = 4000
+        rates, weights = network_additional_four_sec.begin_simulation(time_sim,
+                                                                      network_additional_four_sec.ext_input_full)
+        rates.to_csv(data_dir + 'additional_four_sec_neuron_rates.csv')
+        weights.to_csv(data_dir + 'additional_four_sec_neuron_weights.csv')
+
+    elif sim_id == 5:
+        # Running an additional 4s of the standard simulation following the 8s simulation
+        print('Running an additional 4s of standard simulation following the 8s simulation')
+        weights_initial = pd.DataFrame.from_csv(data_dir + 'additional_four_sec_neuron_weights.csv').values
+        network_additional_four_sec = LinearRecurrentNetwork(weight_array=weights_initial, time_step=0.5)
+        time_sim = 4000
+        rates, weights = network_additional_four_sec.begin_simulation(time_sim,
+                                                                      network_additional_four_sec.ext_input_full)
+        rates.to_csv(data_dir + 'additional_eight_sec_neuron_rates.csv')
+        weights.to_csv(data_dir + 'additional_eight_sec_neuron_weights.csv')
