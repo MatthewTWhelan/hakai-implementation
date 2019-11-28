@@ -204,7 +204,8 @@ class LinearRecurrentNetwork(object):
             self.update_delta_w(self.delta_w, self.rates, self.STP_D, self.STP_F)
             self.update_weights(self.delta_w, self.weights)
 
-            network_firing_rates[step * self.time_step] = self.rates
+            network_firing_rates[step * self.time_step] = self.rates * 1000 # multiplied by 1000 for rate in units
+            # per second
 
             print(int(step / no_steps * 100), "%", end="\r")
 
@@ -217,21 +218,51 @@ class LinearRecurrentNetwork(object):
     def ext_input_full(self, step):
         # excite the first 10 cells for the first 10ms
         if step * self.time_step < 10:
-            for i in range(10):
-                self.I_ext[i] = 5
+            self.I_ext[0:5] = 5
 
         # excite the middle 10 cells at 3s
         if 3000 < step * self.time_step < 3010:
-            for i in range(10):
-                self.I_ext[i + 244] = 5
+            self.I_exc[244:254] = 5
+
+    def ext_input_start(self, step):
+        '''
+        Stimulates the first 10 neurons for 10ms
+        '''
+
+        if step * self.time_step < 10:
+            self.I_ext[0:5] = 5
 
 
 if __name__ == "__main__":
-    network_point5 = LinearRecurrentNetwork(time_step=0.5)
-    network_5 = LinearRecurrentNetwork(time_step=5.0)
+    # Path to store data files
+    data_dir = 'data/'
 
-    time_sim = 4000 # ms
+    sim_id = 3
+    if sim_id == 1:
+        # Running the standard 4s simulation
+        print('Running the standard 4s simulation')
+        network_standard = LinearRecurrentNetwork(time_step=0.5)
+        time_sim = 4000 # ms
+        rates, weights = network_standard.begin_simulation(time_sim, network_standard.ext_input_full)
+        rates.to_csv(data_dir + 'standard_sim_neuron_rates_' + str(time_sim) + '.csv')
+        weights.to_csv(data_dir + 'standard_sim_neuron_weights_' + str(time_sim) + '.csv')
 
-    rates, weights = network_point5.begin_simulation(time_sim, network_point5.ext_input_full)
-    rates.to_csv('neuron_rates_' + str(time_sim) + '.csv')
-    weights.to_csv('neuron_weights_' + str(time_sim) + '.csv')
+    elif sim_id == 2:
+        # Running the first 3s of the standard simulation
+        print('Running the first 3s of the standard simulation')
+        network_standard_three_sec = LinearRecurrentNetwork(time_step=0.5)
+        time_sim = 3000  # ms
+        rates, weights = network_standard_three_sec.begin_simulation(time_sim, network_standard_three_sec.ext_input_start)
+        rates.to_csv(data_dir + 'standard_sim_neuron_rates_' + str(time_sim) + '.csv')
+        weights.to_csv(data_dir + 'standard_sim_neuron_weights_' + str(time_sim) + '.csv')
+
+    elif sim_id == 3:
+        # Running an additional 1s of simulation following the standard 4s simulation
+        print('Running an additional 1s of simulation following the standard 4s simulation')
+        weights_initial = pd.DataFrame.from_csv(data_dir + 'standard_sim_neuron_weights_4000.csv').values
+        network_additional_one_sec = LinearRecurrentNetwork(weight_array=weights_initial)
+        time_sim = 1000
+        rates, weights = network_additional_one_sec.begin_simulation(time_sim, network_additional_one_sec.ext_input_start)
+        rates.to_csv(data_dir + 'additional_one_sec_neuron_rates_' + str(time_sim) + '.csv')
+        weights.to_csv(data_dir + 'additional_one_sec_neuron_weights_' + str(time_sim) + '.csv')
+
